@@ -87,6 +87,7 @@
     $('kSel').addEventListener('change', function () { M.k = +this.value; compute(); });
     $('wSel').addEventListener('change', function () { M.weightMode = this.value; compute(); });
     $('tileChk').addEventListener('change', function () { M.tiles = this.checked; applyTiles(); });
+    if ($('tileSel')) $('tileSel').addEventListener('change', function () { M.tileMode = this.value; applyTiles(); });
     $('stBtn').addEventListener('click', runSelfTest);
 
     initMap();
@@ -94,6 +95,25 @@
   }
 
   /* ==================== 地图 ==================== */
+
+  /* 底图提供方：全部 WGS84 / Web Mercator，不需要 Key，不产生坐标偏移 */
+  var TILES = {
+    sat: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attr: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      name: '卫星影像（Esri）'
+    },
+    street: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors',
+      name: '街道图（Esri）'
+    },
+    osm: {
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attr: '&copy; OpenStreetMap contributors',
+      name: 'OpenStreetMap'
+    }
+  };
 
   function initMap() {
     if (typeof L === 'undefined') {
@@ -103,10 +123,8 @@
     try {
       M.map = L.map('map', { zoomControl: true, attributionControl: true })
         .setView(DATA.meta.center, 16);
-      M.tilesLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      });
+      M.tileMode = (CFG.defaults && CFG.defaults.tileMode) || 'sat';
+      M.tilesLayer = null;
       applyTiles();
       M.layer = L.layerGroup().addTo(M.map);
 
@@ -120,16 +138,19 @@
   }
 
   function applyTiles() {
-    if (!M.map || !M.tilesLayer) return;
-    if (M.tiles) {
+    if (!M.map) return;
+    if (M.tilesLayer) { M.map.removeLayer(M.tilesLayer); M.tilesLayer = null; }
+    var p = TILES[M.tileMode];
+    if (M.tiles && p) {
+      M.tilesLayer = L.tileLayer(p.url, { maxZoom: 19, attribution: p.attr });
       M.tilesLayer.addTo(M.map);
       $('map').style.background = '#1b2434';
+      if ($('tileNote')) { $('tileNote').textContent = '当前底图：' + p.name; }
     } else {
-      M.map.removeLayer(M.tilesLayer);
-      $('map').style.background = '#232b3a';   // 断网备用：纯色底，点位照常显示
+      $('map').style.background = '#232b3a';
+      if ($('tileNote')) { $('tileNote').textContent = '当前底图：无（纯色底）'; }
     }
   }
-
   function drawMap(res) {
     if (!M.map || !M.layer) return;
     M.layer.clearLayers();
