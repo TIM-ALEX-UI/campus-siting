@@ -21,6 +21,7 @@ window.CONFIG = {
   defaults: {
     radius: 200,
     k: 2,
-    weightMode: 'base'
+    weightMode: 'base',
+    tileMode: 'sat'
   }
 };
