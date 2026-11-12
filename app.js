@@ -26,6 +26,11 @@
   };
 
   function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
   function fmtPct(x) { return (x * 100).toFixed(1) + '%'; }
 
   /* ==================== 登录门 ==================== */
@@ -164,7 +169,7 @@
       L.circle([f.lat, f.lon], {
         radius: M.r, color: '#7b1fa2', weight: 1, opacity: .7,
         fillColor: '#7b1fa2', fillOpacity: .05
-      }).addTo(M.layer).bindPopup('<b>' + f.name + '</b><br>现有设施');
+      }).addTo(M.layer).bindPopup('<b>' + esc(f.name) + '</b><br>现有设施');
     });
 
     // 推荐新增点的服务圆
@@ -184,7 +189,7 @@
         radius: pick ? 9 : 6, color: '#fff', weight: pick ? 2 : 1,
         fillColor: pick ? '#ef6c00' : '#1565c0', fillOpacity: 1
       }).addTo(M.layer)
-        .bindPopup('<b>' + c.name + '</b><br>' + c.id + (pick ? ' · <b>已推荐</b>' : ' · 候选'));
+        .bindPopup('<b>' + esc(c.name) + '</b><br>' + c.id + (pick ? ' · <b>已推荐</b>' : ' · 候选'));
     });
 
     // 需求点
@@ -194,7 +199,7 @@
         radius: 7, color: '#fff', weight: 1,
         fillColor: ok ? '#2e7d32' : '#c62828', fillOpacity: 1
       }).addTo(M.layer)
-        .bindPopup('<b>' + d.name + '</b><br>' + d.id +
+        .bindPopup('<b>' + esc(d.name) + '</b><br>' + d.id +
           '<br>权重：' + d.weight +
           '<br>状态：' + (ok ? '已覆盖' : '未覆盖') +
           '<br><span style="color:#888">' + d.source + ' / ' + d.verified + '</span>');
@@ -259,7 +264,7 @@
     // 表三：当前方案的未覆盖清单
     var best = res.perK[M.k - 1];
     var nameOf = {};
-    DATA.demand.forEach(function (d) { nameOf[d.id] = d.name + '（权重 ' + d.weight + '）'; });
+    DATA.demand.forEach(function (d) { nameOf[d.id] = esc(d.name) + '（权重 ' + d.weight + '）'; });
     h += '<table><thead><tr><th>当前推荐方案的未覆盖需求点</th></tr></thead><tbody><tr><td>' +
       (best.uncovered.length
         ? best.uncovered.map(function (id) { return '<span class="tag no">' + nameOf[id] + '</span>'; }).join(' ')
