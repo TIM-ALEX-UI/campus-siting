@@ -7,7 +7,7 @@
 <meta name="description" content="AI辅助校园公共服务设施选址与覆盖分析演示系统 · 人工智能通识与数字素养项目设计大作业">
 <title>AI辅助校园设施选址分析 · Tim &amp; Alex</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
   :root{
     --bg:#0f1420; --panel:#161d2c; --line:#253147; --txt:#e6ecf5; --dim:#8b9bb4;
@@ -89,12 +89,14 @@
 
   /* ---------- 登录 ---------- */
   #login{
-    position:fixed; inset:0; z-index:9999; background:rgba(9,13,20,.96);
+    position:fixed; inset:0; z-index:9999; background:#0b1018;
     display:flex; align-items:center; justify-content:center;
+    padding:20px;                 /* 小屏不被裁边 */
   }
   #login .box{
-    width:340px; background:var(--panel); border:1px solid var(--line);
+    width:340px; max-width:100%; background:var(--panel); border:1px solid var(--line);
     border-radius:12px; padding:26px;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
   }
   #login h2{margin:0 0 4px; font-size:17px}
   #login .sub{font-size:12px; color:var(--dim); margin-bottom:18px}
@@ -232,7 +234,7 @@
 <!-- 作者指纹（请勿删除） -->
 <!-- Author: Tim & Alex / campus-siting / TAL-2026-7f3a -->
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script src="config.js"></script>
 <script src="data.js"></script>
 <script src="algo.js"></script>
