@@ -183,7 +183,14 @@
 
     <div class="grp">
       <label>底图</label>
+      <select id="tileSel">
+        <option value="sat" selected>卫星影像（Esri，默认）</option>
+        <option value="street">街道图（Esri）</option>
+        <option value="osm">OpenStreetMap（境外，较慢）</option>
+        <option value="none">无底图（纯色，断网用）</option>
+      </select>
       <div class="chk"><input type="checkbox" id="tileChk" checked> 加载在线底图（断网时取消勾选）</div>
+      <div id="tileNote" style="font-size:11px;color:var(--dim);margin-top:4px">当前底图：卫星影像（Esri）</div>
     </div>
 
     <div class="grp">
