@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="author" content="Tim & Alex">
+<meta name="description" content="AI辅助校园公共服务设施选址与覆盖分析演示系统 · 人工智能通识与数字素养项目设计大作业">
+<title>AI辅助校园设施选址分析 · Tim &amp; Alex</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#0f1420; --panel:#161d2c; --line:#253147; --txt:#e6ecf5; --dim:#8b9bb4;
+    --accent:#4da3ff; --ok:#2ecc71; --bad:#ff5c6c; --warn:#ffa726;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font:14px/1.6 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    display:flex; flex-direction:column;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    display:flex; align-items:center; gap:14px;
+    padding:10px 18px; border-bottom:1px solid var(--line); background:var(--panel);
+    flex:0 0 auto;
+  }
+  header h1{font-size:15px; margin:0; font-weight:600; letter-spacing:.3px}
+  header .by{font-size:11px; color:var(--dim)}
+  #modeTag{
+    margin-left:auto; font-size:12px; padding:3px 10px; border-radius:20px;
+    border:1px solid var(--line); color:var(--accent);
+  }
+  #roleTag{font-size:12px; color:var(--dim)}
+
+  /* ---------- 主体 ---------- */
+  main{display:flex; flex:1 1 auto; min-height:0}
+  #panel{
+    width:320px; flex:0 0 320px; padding:14px; overflow:auto;
+    border-right:1px solid var(--line); background:var(--panel);
+  }
+  #mapwrap{flex:1 1 auto; position:relative; min-width:0}
+  #map{position:absolute; inset:0; background:#1b2434}
+  #mapnote{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    color:var(--dim); font-size:13px; text-align:center; padding:24px;
+  }
+
+  /* ---------- 控件 ---------- */
+  .grp{margin-bottom:16px}
+  .grp label{display:block; font-size:12px; color:var(--dim); margin-bottom:6px}
+  .val{color:var(--accent); font-weight:600}
+  input[type=range]{width:100%; accent-color:var(--accent)}
+  select,button,input[type=text],input[type=password]{
+    width:100%; padding:8px 10px; border-radius:6px;
+    border:1px solid var(--line); background:#111827; color:var(--txt);
+    font:inherit;
+  }
+  button{cursor:pointer; transition:.15s; border-color:var(--accent); color:var(--accent)}
+  button:hover{background:#1b2a44}
+  button.ghost{border-color:var(--line); color:var(--dim)}
+  .row{display:flex; gap:8px}
+  .chk{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--dim); margin-top:6px}
+  .chk input{width:auto}
+
+  /* ---------- 结果 ---------- */
+  #results{
+    flex:0 0 auto; max-height:38vh; overflow:auto;
+    border-top:1px solid var(--line); background:#121926; padding:14px 18px;
+  }
+  .cards{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:10px 14px; min-width:150px;
+  }
+  .card .k{font-size:11px; color:var(--dim)}
+  .card .v{font-size:18px; font-weight:700; color:var(--accent)}
+  .card .v.small{font-size:13px}
+  table{width:100%; border-collapse:collapse; font-size:12.5px; margin-bottom:10px}
+  th,td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--line)}
+  th{color:var(--dim); font-weight:500; font-size:11.5px}
+  td.num{text-align:right; font-variant-numeric:tabular-nums}
+  .tag{display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px}
+  .tag.ok{background:rgba(46,204,113,.15); color:var(--ok)}
+  .tag.no{background:rgba(255,92,108,.15); color:var(--bad)}
+  .tag.warn{background:rgba(255,167,38,.15); color:var(--warn)}
+
+  /* ---------- 登录 ---------- */
+  #login{
+    position:fixed; inset:0; z-index:9999; background:rgba(9,13,20,.96);
+    display:flex; align-items:center; justify-content:center;
+  }
+  #login .box{
+    width:340px; background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:26px;
+  }
+  #login h2{margin:0 0 4px; font-size:17px}
+  #login .sub{font-size:12px; color:var(--dim); margin-bottom:18px}
+  #login .f{margin-bottom:12px}
+  #loginErr{color:var(--bad); font-size:12px; min-height:18px; margin-bottom:6px}
+  #login .hint{
+    margin-top:16px; padding-top:12px; border-top:1px solid var(--line);
+    font-size:11.5px; color:var(--dim); line-height:1.7;
+  }
+  .hidden{display:none !important}
+
+  /* ---------- 自检 ---------- */
+  #stList{font-size:12px; max-height:220px; overflow:auto}
+  #stList div{display:flex; gap:8px; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,.05)}
+  #stList .n{flex:1}
+  #stSum{font-weight:700; margin-bottom:8px}
+
+  footer{
+    flex:0 0 auto; padding:8px 18px; border-top:1px solid var(--line);
+    background:var(--panel); font-size:11.5px; color:var(--dim);
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  footer .sp{margin-left:auto}
+  #legend{
+    position:absolute; left:10px; bottom:10px; z-index:500;
+    background:rgba(15,20,32,.88); border:1px solid var(--line); border-radius:6px;
+    padding:8px 10px; font-size:11.5px; line-height:1.8;
+  }
+  #legend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px}
+</style>
+</head>
+<body>
+
+<!-- ================= 登录门 ================= -->
+<div id="login">
+  <div class="box">
+    <h2>校园设施选址分析系统</h2>
+    <div class="sub">AI 通识 · 项目设计大作业 &nbsp;|&nbsp; Tim &amp; Alex</div>
+    <div class="f"><input id="u" type="text" placeholder="用户名" autocomplete="off"></div>
+    <div class="f"><input id="p" type="password" placeholder="密码" autocomplete="new-password"></div>
+    <div id="loginErr"></div>
+    <button id="loginBtn">进入系统</button>
+    <div class="hint">
+      演示账号：<b>demo</b> / <b>demo2026</b><br>
+      本系统为纯前端演示作品，登录校验在客户端完成，仅用于区分使用场景，不具备服务端鉴权强度。
+    </div>
+  </div>
+</div>
+
+<!-- ================= 顶栏 ================= -->
+<header>
+  <h1>AI辅助校园公共服务设施选址与覆盖分析</h1>
+  <span class="by">Design by Tim &amp; Alex</span>
+  <span id="modeTag">演示系统</span>
+  <span id="roleTag"></span>
+</header>
+
+<!-- ================= 主体 ================= -->
+<main>
+  <aside id="panel">
+    <div class="grp">
+      <label>服务半径 r &nbsp;= <span class="val" id="rVal">200</span> 米</label>
+      <input type="range" id="rRange" min="50" max="500" step="25" value="200">
+    </div>
+
+    <div class="grp">
+      <label>新增设施数量上限 k</label>
+      <select id="kSel">
+        <option value="1">1 个</option>
+        <option value="2" selected>2 个</option>
+        <option value="3">3 个</option>
+        <option value="4">4 个</option>
+      </select>
+    </div>
+
+    <div class="grp">
+      <label>需求权重情景</label>
+      <select id="wSel">
+        <option value="base">原始权重（情景假设）</option>
+        <option value="flat">等权（不区分人群）</option>
+        <option value="dorm">宿舍加权 ×1.5（情景假设）</option>
+      </select>
+    </div>
+
+    <div class="grp">
+      <label>底图</label>
+      <div class="chk"><input type="checkbox" id="tileChk" checked> 加载在线底图（断网时取消勾选）</div>
+    </div>
+
+    <div class="grp">
+      <button id="stBtn" class="ghost">运行自检（17 项）</button>
+    </div>
+
+    <div class="grp hidden" id="stBox">
+      <label>自检结果</label>
+      <div id="stSum"></div>
+      <div id="stList"></div>
+    </div>
+
+    <div class="grp">
+      <label>口径说明</label>
+      <div style="font-size:11.5px;color:var(--dim);line-height:1.75">
+        距离为<b>平面直线距离</b>（局部米制投影），不代表步行路径或实际通行时间。<br>
+        权重为<b>情景假设</b>，未做实证调查。<br>
+        坐标为<b>示意值</b>，尚未实地核查。
+      </div>
+    </div>
+  </aside>
+
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="mapnote">地图组件未加载（离线环境）。<br>右侧参数与下方结果表仍可正常使用。</div>
+    <div id="legend">
+      <div><i style="background:#c62828"></i>未被覆盖的需求点</div>
+      <div><i style="background:#2e7d32"></i>已被覆盖的需求点</div>
+      <div><i style="background:#1565c0"></i>候选新增点</div>
+      <div><i style="background:#ef6c00"></i>推荐新增点</div>
+      <div><i style="background:#7b1fa2"></i>现有设施</div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= 结果 ================= -->
+<section id="results">
+  <div class="cards" id="cards"></div>
+  <div id="tables"></div>
+</section>
+
+<footer>
+  <span>© 2026 Tim &amp; Alex · 郑州大学</span>
+  <span>人工智能通识与数字素养 · 项目设计大作业</span>
+  <span class="sp">数据：示意坐标 / 情景权重（未实证）</span>
+</footer>
+
+<!-- 作者指纹（请勿删除） -->
+<!-- Author: Tim & Alex / campus-siting / TAL-2026-7f3a -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="algo.js"></script>
+<script src="selftest.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
