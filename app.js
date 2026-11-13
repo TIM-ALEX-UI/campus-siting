@@ -149,6 +149,17 @@
     if (M.tiles && p) {
       M.tilesLayer = L.tileLayer(p.url, { maxZoom: 19, attribution: p.attr });
       M.tilesLayer.addTo(M.map);
+      (function () {
+        var terr = 0;
+        M.tilesLayer.on('tileerror', function () {
+          terr++;
+          if (terr >= 3) {
+            M.tiles = false;
+            applyTiles();
+            if ($('tileNote')) $('tileNote').textContent = '底图加载失败，已切换到纯色底（点位与结果不受影响）';
+          }
+        });
+      })();
       $('map').style.background = '#1b2434';
       if ($('tileNote')) { $('tileNote').textContent = '当前底图：' + p.name; }
     } else {
@@ -189,7 +200,7 @@
         radius: pick ? 9 : 6, color: '#fff', weight: pick ? 2 : 1,
         fillColor: pick ? '#ef6c00' : '#1565c0', fillOpacity: 1
       }).addTo(M.layer)
-        .bindPopup('<b>' + esc(c.name) + '</b><br>' + c.id + (pick ? ' · <b>已推荐</b>' : ' · 候选'));
+        .bindPopup('<b>' + esc(c.name) + '</b><br>' + esc(c.id) + (pick ? ' · <b>已推荐</b>' : ' · 候选'));
     });
 
     // 需求点
@@ -199,10 +210,10 @@
         radius: 7, color: '#fff', weight: 1,
         fillColor: ok ? '#2e7d32' : '#c62828', fillOpacity: 1
       }).addTo(M.layer)
-        .bindPopup('<b>' + esc(d.name) + '</b><br>' + d.id +
-          '<br>权重：' + d.weight +
+        .bindPopup('<b>' + esc(d.name) + '</b><br>' + esc(d.id) +
+          '<br>权重：' + esc(d.weight) +
           '<br>状态：' + (ok ? '已覆盖' : '未覆盖') +
-          '<br><span style="color:#888">' + d.source + ' / ' + d.verified + '</span>');
+          '<br><span style="color:#888">' + esc(d.source) + ' / ' + esc(d.verified) + '</span>');
     });
   }
 
@@ -253,7 +264,7 @@
     // 表二：当前 k 的前 5 名
     h += '<table><thead><tr><th>排名</th><th>组合</th><th class="num">覆盖权重</th><th class="num">覆盖率</th><th>未覆盖点</th></tr></thead><tbody>';
     res.top.forEach(function (t, i) {
-      var un = t.uncovered.length ? t.uncovered.join('、') : '<span class="tag ok">全覆盖</span>';
+      var un = t.uncovered.length ? esc(t.uncovered.join('、')) : '<span class="tag ok">全覆盖</span>';
       h += '<tr><td>' + (i + 1) + '</td><td>' + t.combo.join(' + ') + '</td>' +
         '<td class="num">' + t.gain + '</td>' +
         '<td class="num">' + fmtPct(t.coverage) + '</td>' +
