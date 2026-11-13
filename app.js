@@ -105,27 +105,21 @@
     sat: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       attr: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-      name: '卫星影像（Esri）', maxZoom: 19
+      name: '卫星影像（Esri）', maxZoom: 18
     },
-    street: {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors',
-      name: '街道图（Esri）', maxZoom: 19
-    },
-    topo: {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-      attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, USGS',
-      name: '地形图（Esri）', maxZoom: 19
+    amap: {
+      url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+      attr: '&copy; 高德地图（GCJ-02，点位已纠偏）',
+      name: '街道图（高德·已纠偏）', maxZoom: 18
     },
     osm: {
       url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attr: '&copy; OpenStreetMap contributors',
-      name: 'OpenStreetMap', maxZoom: 19
+      name: 'OpenStreetMap（境外）', maxZoom: 18
     }
   };
-  /* 失败转移顺序：卫星 → 街道 → 地形 → OSM */
-  var TILE_CHAIN = ['sat', 'street', 'topo', 'osm'];
-
+  /* 失败转移：卫星 → 高德街道 → OSM → 纯色 */
+  var TILE_CHAIN = ['sat', 'amap', 'osm'];
   function initMap() {
     if (typeof L === 'undefined') {
       $('mapnote').style.display = 'flex';
@@ -133,7 +127,7 @@
     }
     try {
       M.map = L.map('map', { zoomControl: true, attributionControl: true })
-        .setView(DATA.meta.center, 16);
+        .setView(pv(DATA.meta.center[0], DATA.meta.center[1]), 16);
       M.tileMode = (CFG.defaults && CFG.defaults.tileMode) || 'sat';
       M.tilesLayer = null;
       applyTiles();
@@ -148,6 +142,35 @@
     }
   }
 
+  /* WGS84 → GCJ-02：高德瓦片用国测局坐标，不纠偏会把点位甩出 100—600 米 */
+  function wgs2gcj(lon, lat) {
+    var a = 6378245.0, ee = 0.00669342162296594323;
+    function tLat(x, y) {
+      var r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+      r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+      r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+      r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+      return r;
+    }
+    function tLon(x, y) {
+      var r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+      r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+      r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+      r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+      return r;
+    }
+    var dLat = tLat(lon - 105, lat - 35), dLon = tLon(lon - 105, lat - 35);
+    var radLat = lat / 180 * Math.PI;
+    var magic = Math.sin(radLat); magic = 1 - ee * magic * magic;
+    var sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
+    dLon = (dLon * 180) / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
+    return [lat + dLat, lon + dLon];
+  }
+  /* 按当前底图决定是否做 GCJ-02 纠偏 */
+  function pv(lat, lon) {
+    return (M.tileMode === 'amap') ? wgs2gcj(lon, lat) : [lat, lon];
+  }
   function switchNextTile() {
     var idx = TILE_CHAIN.indexOf(M.tileMode);
     if (idx >= 0 && idx < TILE_CHAIN.length - 1) {
@@ -165,7 +188,7 @@
     if (M.tilesLayer) { M.map.removeLayer(M.tilesLayer); M.tilesLayer = null; }
     var p = TILES[M.tileMode];
     if (M.tiles && p) {
-      M.tilesLayer = L.tileLayer(p.url, { maxZoom: 19, maxNativeZoom: p.maxZoom || 19, detectRetina: true, attribution: p.attr });
+      M.tilesLayer = L.tileLayer(p.url, { maxZoom: p.maxZoom || 18, maxNativeZoom: p.maxZoom || 18, attribution: p.attr });
       M.tilesLayer.addTo(M.map);
       (function () {
         var terr = 0;
@@ -195,7 +218,7 @@
 
     // 现有设施的服务圆
     (DATA.existing || []).forEach(function (f) {
-      L.circle([f.lat, f.lon], {
+      L.circle(pv(f.lat, f.lon), {
         radius: M.r, color: '#7b1fa2', weight: 1, opacity: .7,
         fillColor: '#7b1fa2', fillOpacity: .05
       }).addTo(M.layer).bindPopup('<b>' + esc(f.name) + '</b><br>现有设施');
@@ -205,7 +228,7 @@
     best.forEach(function (id) {
       var c = DATA.candidate.filter(function (x) { return x.id === id; })[0];
       if (!c) return;
-      L.circle([c.lat, c.lon], {
+      L.circle(pv(c.lat, c.lon), {
         radius: M.r, color: '#ef6c00', weight: 2,
         fillColor: '#ef6c00', fillOpacity: .12
       }).addTo(M.layer);
@@ -214,7 +237,7 @@
     // 候选点
     DATA.candidate.forEach(function (c) {
       var pick = best.indexOf(c.id) >= 0;
-      L.circleMarker([c.lat, c.lon], {
+      L.circleMarker(pv(c.lat, c.lon), {
         radius: pick ? 9 : 6, color: '#fff', weight: pick ? 2 : 1,
         fillColor: pick ? '#ef6c00' : '#1565c0', fillOpacity: 1
       }).addTo(M.layer)
@@ -224,7 +247,7 @@
     // 需求点
     DATA.demand.forEach(function (d) {
       var ok = !!covered[d.id];
-      L.circleMarker([d.lat, d.lon], {
+      L.circleMarker(pv(d.lat, d.lon), {
         radius: 7, color: '#fff', weight: 1,
         fillColor: ok ? '#2e7d32' : '#c62828', fillOpacity: 1
       }).addTo(M.layer)
