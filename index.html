@@ -199,13 +199,13 @@
     <div class="grp">
       <label>底图</label>
       <select id="tileSel">
-        <option value="sat" selected>卫星影像（Esri，默认）</option>
-        <option value="amap">街道图（高德，已纠偏）</option>
-        <option value="osm">OpenStreetMap（境外，常不可达）</option>
+        <option value="amapSat" selected>卫星影像（高德，默认）</option>
+        <option value="amapStreet">街道图（高德）</option>
+        <option value="esriSat">卫星影像（Esri，境外可能超时）</option>
         <option value="none">无底图（纯色，断网用）</option>
       </select>
       <div class="chk"><input type="checkbox" id="tileChk" checked> 加载在线底图（断网时取消勾选）</div>
-      <div id="tileNote" style="font-size:11px;color:var(--dim);margin-top:4px">当前底图：卫星影像（Esri）</div>
+      <div id="tileNote" style="font-size:11px;color:var(--dim);margin-top:4px">当前底图：卫星影像（高德）</div>
     </div>
 
     <div class="grp">
@@ -257,10 +257,10 @@
 <!-- Author: Tim & Alex / campus-siting / TAL-2026-7f3a -->
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="config.js"></script>
-<script src="data.js"></script>
-<script src="algo.js"></script>
-<script src="selftest.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=11"></script>
+<script src="data.js?v=11"></script>
+<script src="algo.js?v=11"></script>
+<script src="selftest.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
