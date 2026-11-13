@@ -38,6 +38,7 @@
   /** 权重情景：base=原始权重；flat=等权；dorm=宿舍类加权（情景假设） */
   function weightOf(d, mode) {
     if (mode === 'flat') return 1;
+    if (mode === 'pop') return +d.pop || 0;
     if (mode === 'dorm') return (d.category || '').indexOf('宿舍') === 0 ? d.weight * 1.5 : d.weight;
     return d.weight;
   }
