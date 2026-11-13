@@ -126,8 +126,22 @@
     padding:8px 10px; font-size:11.5px; line-height:1.8;
   }
   #legend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px}
-</style>
-</head>
+  /* 小屏：纵向布局，参数区可折叠高度，地图保底高度 */
+  @media (max-width: 900px){
+    main{flex-direction:column}
+    #panel{width:auto;flex:0 0 auto;max-height:46vh;border-right:0;border-bottom:1px solid var(--line)}
+    #mapwrap{min-height:340px}
+    #results{max-height:none}
+    header h1{font-size:14px}
+  }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+<link rel="canonical" href="https://tim-alex-ui.github.io/campus-siting/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI辅助校园公共服务设施选址与覆盖分析 · Tim & Alex">
+<meta property="og:description" content="加权最大覆盖（MCLP）穷举求解的校园选址演示：可调半径与新增数量，含 17 项自检与第三方复算。">
+<meta property="og:url" content="https://tim-alex-ui.github.io/campus-siting/">
+<meta name="theme-color" content="#0f1420">
+<meta name="robots" content="index,follow"></head>
 <body>
 
 <!-- ================= 登录门 ================= -->
@@ -135,10 +149,10 @@
   <div class="box">
     <h2>校园设施选址分析系统</h2>
     <div class="sub">AI 通识 · 项目设计大作业 &nbsp;|&nbsp; Tim &amp; Alex</div>
-    <div class="f"><input id="u" type="text" placeholder="用户名" autocomplete="off"></div>
-    <div class="f"><input id="p" type="password" placeholder="密码" autocomplete="new-password"></div>
+    <div class="f"><label class="sr-only" for="u">用户名</label><input id="u" type="text" placeholder="用户名" autocomplete="off" aria-label="用户名"></div>
+    <div class="f"><label class="sr-only" for="p">密码</label><input id="p" type="password" placeholder="密码" autocomplete="new-password" aria-label="密码"></div>
     <div id="loginErr"></div>
-    <button id="loginBtn">进入系统</button>
+    <button id="loginBtn" aria-label="进入系统">进入系统</button>
     <div class="hint">
       演示账号：<b>demo</b> / <b>demo2026</b><br>
       本系统为纯前端演示作品，登录校验在客户端完成，仅用于区分使用场景，不具备服务端鉴权强度。
@@ -159,7 +173,7 @@
   <aside id="panel">
     <div class="grp">
       <label>服务半径 r &nbsp;= <span class="val" id="rVal">200</span> 米</label>
-      <input type="range" id="rRange" min="50" max="500" step="25" value="200">
+      <input type="range" id="rRange" min="50" max="500" step="25" value="200" aria-label="服务半径（米）">
     </div>
 
     <div class="grp">
