@@ -22,6 +22,6 @@ window.CONFIG = {
     radius: 200,
     k: 2,
     weightMode: 'base',
-    tileMode: 'sat'
+    tileMode: 'amapSat'
   }
 };
