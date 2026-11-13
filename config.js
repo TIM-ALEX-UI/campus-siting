@@ -12,7 +12,7 @@ window.CONFIG = {
 
   /* 公开版只放一个演示账号；账号密码对演示者是公开的，这是设计而非疏漏 */
   accounts: {
-    demo: { pass: 'demo2026', role: 'guest' }
+    demo: { pass: 'Demo-VYXPRk', role: 'guest' }
   },
 
   /* 公开版不发任何长期凭证 */
