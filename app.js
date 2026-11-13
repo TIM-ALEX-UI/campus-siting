@@ -101,24 +101,30 @@
 
   /* ==================== 地图 ==================== */
 
-  /* 底图提供方：全部 WGS84 / Web Mercator，不需要 Key，不产生坐标偏移 */
-  var TILES = {
+    var TILES = {
     sat: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       attr: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-      name: '卫星影像（Esri）'
+      name: '卫星影像（Esri）', maxZoom: 19
     },
     street: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
       attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors',
-      name: '街道图（Esri）'
+      name: '街道图（Esri）', maxZoom: 19
+    },
+    topo: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+      attr: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, USGS',
+      name: '地形图（Esri）', maxZoom: 19
     },
     osm: {
       url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attr: '&copy; OpenStreetMap contributors',
-      name: 'OpenStreetMap'
+      name: 'OpenStreetMap', maxZoom: 19
     }
   };
+  /* 失败转移顺序：卫星 → 街道 → 地形 → OSM */
+  var TILE_CHAIN = ['sat', 'street', 'topo', 'osm'];
 
   function initMap() {
     if (typeof L === 'undefined') {
@@ -142,12 +148,24 @@
     }
   }
 
+  function switchNextTile() {
+    var idx = TILE_CHAIN.indexOf(M.tileMode);
+    if (idx >= 0 && idx < TILE_CHAIN.length - 1) {
+      M.tileMode = TILE_CHAIN[idx + 1];
+      applyTiles();
+      if ($('tileNote')) $('tileNote').textContent = '底图源不可用，已自动切换到：' + TILES[M.tileMode].name;
+    } else {
+      M.tiles = false;
+      applyTiles();
+      if ($('tileNote')) $('tileNote').textContent = '所有在线底图均不可用，已切纯色底（点位与结果不受影响）';
+    }
+  }
   function applyTiles() {
     if (!M.map) return;
     if (M.tilesLayer) { M.map.removeLayer(M.tilesLayer); M.tilesLayer = null; }
     var p = TILES[M.tileMode];
     if (M.tiles && p) {
-      M.tilesLayer = L.tileLayer(p.url, { maxZoom: 19, attribution: p.attr });
+      M.tilesLayer = L.tileLayer(p.url, { maxZoom: 19, maxNativeZoom: p.maxZoom || 19, detectRetina: true, attribution: p.attr });
       M.tilesLayer.addTo(M.map);
       (function () {
         var terr = 0;
