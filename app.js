@@ -102,25 +102,24 @@
   /* ==================== 地图 ==================== */
 
     var TILES = {
-    sat: {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      attr: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-      name: '卫星影像（Esri）', maxZoom: 18
+    amapSat: {
+      url: 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+      attr: '&copy; 高德地图（GCJ-02，点位已纠偏）',
+      name: '卫星影像（高德）', maxZoom: 18, gcj: true
     },
-    amap: {
+    amapStreet: {
       url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
       attr: '&copy; 高德地图（GCJ-02，点位已纠偏）',
-      name: '街道图（高德·已纠偏）', maxZoom: 18
+      name: '街道图（高德）', maxZoom: 18, gcj: true
     },
-    osm: {
-      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attr: '&copy; OpenStreetMap contributors',
-      name: 'OpenStreetMap（境外）', maxZoom: 18
+    esriSat: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attr: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      name: '卫星影像（Esri·境外）', maxZoom: 18, gcj: false
     }
   };
-  /* 失败转移：卫星 → 高德街道 → OSM → 纯色 */
-  var TILE_CHAIN = ['sat', 'amap', 'osm'];
-  function initMap() {
+  /* 失败转移：高德卫星 → 高德街道 → Esri 卫星 → 纯色 */
+  var TILE_CHAIN = ['amapSat', 'amapStreet', 'esriSat'];  function initMap() {
     if (typeof L === 'undefined') {
       $('mapnote').style.display = 'flex';
       return;
@@ -128,7 +127,7 @@
     try {
       M.map = L.map('map', { zoomControl: true, attributionControl: true })
         .setView(pv(DATA.meta.center[0], DATA.meta.center[1]), 16);
-      M.tileMode = (CFG.defaults && CFG.defaults.tileMode) || 'sat';
+      M.tileMode = (CFG.defaults && CFG.defaults.tileMode) || 'amapSat';
       M.tilesLayer = null;
       applyTiles();
       M.layer = L.layerGroup().addTo(M.map);
@@ -169,7 +168,20 @@
   }
   /* 按当前底图决定是否做 GCJ-02 纠偏 */
   function pv(lat, lon) {
-    return (M.tileMode === 'amap') ? wgs2gcj(lon, lat) : [lat, lon];
+    var p = TILES[M.tileMode]; return (p && p.gcj) ? wgs2gcj(lon, lat) : [lat, lon];
+  }
+  /* 看门狗：6 秒内一张瓦片都没加载成功，就换下一个源（应对“请求挂起但不报错”） */
+  var TILE_WATCH = null;
+  function startTileWatch() {
+    if (TILE_WATCH) { clearTimeout(TILE_WATCH); TILE_WATCH = null; }
+    TILE_WATCH = setTimeout(function () {
+      var imgs = document.querySelectorAll('#map img.leaflet-tile');
+      var ok = 0;
+      for (var i = 0; i < imgs.length; i++) {
+        if (imgs[i].complete && imgs[i].naturalWidth > 0) { ok++; }
+      }
+      if (ok === 0 && M.tiles) { switchNextTile(); }
+    }, 6000);
   }
   function switchNextTile() {
     var idx = TILE_CHAIN.indexOf(M.tileMode);
@@ -190,6 +202,7 @@
     if (M.tiles && p) {
       M.tilesLayer = L.tileLayer(p.url, { maxZoom: p.maxZoom || 18, maxNativeZoom: p.maxZoom || 18, attribution: p.attr });
       M.tilesLayer.addTo(M.map);
+      startTileWatch();
       (function () {
         var terr = 0;
         M.tilesLayer.on('tileerror', function () {
